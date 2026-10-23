@@ -1,0 +1,24 @@
+{
+  "name": "drawnix-desktop",
+  "version": "0.0.2",
+  "private": true,
+  "description": "Drawnix 开源白板桌面版（Windows 10 x64）",
+  "author": "Drawnix Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/plait-board/drawnix.git"
+  },
+  "main": "electron/dist/main.js",
+  "scripts": {
+    "sync:web": "node scripts/sync-web.js",
+    "electron:build": "esbuild electron/main.ts electron/preload.ts --bundle --platform=node --target=node20 --format=cjs --external:electron --outdir=electron/dist --sourcemap",
+    "electron:dev": "npm run electron:build && electron .",
+    "dist:win": "npm run sync:web && npm run electron:build && electron-builder --win --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "^41.7.1",
+    "electron-builder": "^26.15.3",
+    "esbuild": "^0.28.2"
+  }
+}

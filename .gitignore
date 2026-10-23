@@ -1,0 +1,6 @@
+node_modules/
+release/
+.cache/
+electron/dist/
+
+# dist/apps/web 是随仓库提交的预构建渲染层，供独立克隆直接打包

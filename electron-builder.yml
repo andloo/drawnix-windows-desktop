@@ -1,0 +1,45 @@
+appId: com.drawnix.desktop
+productName: Drawnix
+copyright: Copyright © 2024-2026 Drawnix Team
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - electron/dist/**/*
+  - dist/apps/web/**/*
+  - package.json
+  - "!**/*.map"
+
+asar: true
+npmRebuild: false
+compression: maximum
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: build/icon.ico
+  executableName: Drawnix
+  artifactName: ${productName}-${version}-${arch}-Setup.${ext}
+  requestedExecutionLevel: asInvoker
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Drawnix
+  deleteAppDataOnUninstall: false
+  runAfterFinish: true
+
+fileAssociations:
+  - ext: drawnix
+    name: Drawnix 图稿
+    description: Drawnix 白板文件
+    icon: build/file.ico
+    role: Editor
