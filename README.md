@@ -12,8 +12,7 @@
 
 | 文件 | 说明 |
 | --- | --- |
-| `Drawnix-<version>-x64-Setup.exe` | 安装版（推荐）：可选安装目录，创建桌面/开始菜单快捷方式，注册 `.drawnix` 文件关联 |
-| `Drawnix-<version>-x64-Portable.exe` | 免安装版（可选构建目标，默认不产出） |
+| `Drawnix-<version>-x64-Setup.exe` | 安装版：可选安装目录，创建桌面/开始菜单快捷方式，注册 `.drawnix` 文件关联 |
 
 系统要求：Windows 10 1809+ / Windows 11，x64。
 
