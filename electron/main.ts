@@ -120,8 +120,35 @@ async function menuOpenDrawnixFile() {
   await openFileInWindow(result.filePaths[0]);
 }
 
+// 窗口是 show: false + ready-to-show 才显示的，加载失败时永远不会显示，
+// 必须显式提示并提供重试，否则应用会表现为“启动了但没有任何窗口”
+async function loadWithRetry(win: BrowserWindow, url: string): Promise<boolean> {
+  for (;;) {
+    if (win.isDestroyed()) return false;
+    try {
+      await win.loadURL(url);
+      return true;
+    } catch (error) {
+      if (win.isDestroyed()) return false;
+      if (!win.isVisible()) win.show();
+      const reason = error instanceof Error ? error.message : String(error);
+      const { response } = await dialog.showMessageBox(win, {
+        type: 'error',
+        title: '启动失败',
+        message: 'Drawnix 界面加载失败',
+        detail: `${url}\n${reason}\n\n开发模式请确认 Drawnix Web 开发服务器 http://localhost:7200 已启动；安装版请确认安装目录中的 dist/apps/web 完整。`,
+        buttons: ['退出', '重试'],
+        defaultId: 1,
+        cancelId: 0,
+        noLink: true,
+      });
+      if (response !== 1) return false;
+    }
+  }
+}
+
 async function createWindow() {
-  mainWindow = new BrowserWindow({
+  const win = new BrowserWindow({
     width: 1440,
     height: 900,
     minWidth: 1024,
@@ -138,29 +165,32 @@ async function createWindow() {
       spellcheck: false,
     },
   });
+  mainWindow = win;
 
-  mainWindow.once('ready-to-show', () => mainWindow?.show());
+  win.once('ready-to-show', () => {
+    if (!win.isDestroyed()) win.show();
+  });
 
   // 页面刷新后需要重新握手，避免向旧渲染进程发事件
-  mainWindow.webContents.on('did-start-loading', () => {
+  win.webContents.on('did-start-loading', () => {
     rendererReady = false;
   });
 
-  if (isDev) {
-    await mainWindow.loadURL(DEV_SERVER_URL);
-    mainWindow.webContents.openDevTools({ mode: 'detach' });
-  } else {
-    await mainWindow.loadURL(`${APP_ORIGIN}/index.html`);
+  const url = isDev ? DEV_SERVER_URL : `${APP_ORIGIN}/index.html`;
+  if (!(await loadWithRetry(win, url))) {
+    if (!win.isDestroyed()) win.destroy();
+    return;
   }
+  if (isDev) win.webContents.openDevTools({ mode: 'detach' });
 
   // 外链一律交给系统浏览器；禁止应用内开新窗口
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+  win.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:\/\//i.test(url)) shell.openExternal(url);
     return { action: 'deny' };
   });
 
   // 阻止页面被导航离开（例如误点链接跳走）
-  mainWindow.webContents.on('will-navigate', (event, url) => {
+  win.webContents.on('will-navigate', (event, url) => {
     const allowed = isDev ? url.startsWith(DEV_SERVER_URL) : url.startsWith(APP_ORIGIN);
     if (!allowed) {
       event.preventDefault();
@@ -168,8 +198,8 @@ async function createWindow() {
     }
   });
 
-  mainWindow.on('closed', () => {
-    mainWindow = null;
+  win.on('closed', () => {
+    if (mainWindow === win) mainWindow = null;
   });
 }
 
@@ -320,20 +350,30 @@ if (!gotTheLock) {
     if (filePath) void openFileInWindow(filePath);
   });
 
-  app.whenReady().then(async () => {
-    app.setAppUserModelId('com.drawnix.desktop');
-    registerAppProtocol();
-    registerIpc();
-    buildMenu();
-    await createWindow();
+  app
+    .whenReady()
+    .then(async () => {
+      app.setAppUserModelId('com.drawnix.desktop');
+      registerAppProtocol();
+      registerIpc();
+      buildMenu();
+      await createWindow();
 
-    const startupFile = findDrawnixPath(process.argv);
-    if (startupFile) await openFileInWindow(startupFile);
+      const startupFile = findDrawnixPath(process.argv);
+      if (startupFile) await openFileInWindow(startupFile);
 
-    app.on('activate', () => {
-      if (BrowserWindow.getAllWindows().length === 0) void createWindow();
+      app.on('activate', () => {
+        if (BrowserWindow.getAllWindows().length === 0) void createWindow();
+      });
+    })
+    .catch((error: unknown) => {
+      // 启动链路上任何未捕获异常都要让用户看到，而不是留一个没有任何窗口的进程
+      dialog.showErrorBox(
+        'Drawnix 启动失败',
+        error instanceof Error ? error.message : String(error)
+      );
+      app.quit();
     });
-  });
 
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();

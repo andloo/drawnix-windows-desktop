@@ -68,6 +68,8 @@ npm run dist:win
 2. `electron:build`：用 esbuild 编译 `electron/main.ts` 与 `electron/preload.ts` 到 `electron/dist`
 3. `electron-builder --win --x64`：生成 NSIS 安装包
 
+> 桌面适配层（`window.drawnixDesktop` 桥接、CSP、原生打开/保存流程）只存在于预构建产物中，普通上游构建不含这些改动。因此 `sync:web` 会先校验上游产物，缺少适配标记时默认拒绝覆盖并退出，避免打包出失去桌面能力的安装包；确认要强制覆盖时执行 `npm run sync:web -- --force`。替换采用「暂存 → 校验 → 备份 → 原子替换」，失败会自动回滚。也可随时单独校验产物：`npm run verify:web`。
+
 重新生成图标（可选）：
 
 ```powershell
@@ -83,7 +85,8 @@ powershell -ExecutionPolicy Bypass -File scripts/make-icons.ps1
 │   ├── preload.ts              # contextBridge 白名单 API
 │   └── tsconfig.json
 ├── scripts/
-│   ├── sync-web.js             # 同步渲染层产物到 dist/apps/web
+│   ├── sync-web.js             # 同步渲染层产物到 dist/apps/web（校验 + 原子替换 + 回滚）
+│   ├── check-web-build.js      # 校验渲染层产物是否包含桌面适配层
 │   └── make-icons.ps1          # 生成多尺寸 ico
 ├── build/
 │   ├── icon.ico                # 应用图标

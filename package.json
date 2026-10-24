@@ -12,6 +12,7 @@
   "main": "electron/dist/main.js",
   "scripts": {
     "sync:web": "node scripts/sync-web.js",
+    "verify:web": "node scripts/check-web-build.js",
     "electron:build": "esbuild electron/main.ts electron/preload.ts --bundle --platform=node --target=node20 --format=cjs --external:electron --outdir=electron/dist --sourcemap",
     "electron:dev": "npm run electron:build && electron .",
     "dist:win": "npm run sync:web && npm run electron:build && electron-builder --win --x64 --publish never"
