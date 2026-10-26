@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>Drawnix - 开源白板工具</title>
+    <!--
+      桌面端专用 CSP：页面只允许加载 app:// 与自身资源，禁止任何远程脚本。
+      上游 index.html 里的站点统计脚本因此不会被加载，也不需要像以前那样
+      事后从构建产物里删除。
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self' app: data: blob:;
+               img-src 'self' app: data: blob:;
+               style-src 'self' app: 'unsafe-inline';
+               script-src 'self' app:;
+               font-src 'self' app: data:;
+               connect-src 'self' app: data: blob:;"
+    />
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>

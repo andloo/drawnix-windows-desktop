@@ -12,9 +12,25 @@ import {
 import { readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
+import { loadWindowState, trackWindowState } from './window-state';
 
-const DEV_SERVER_URL = 'http://localhost:7200';
-const isDev = !app.isPackaged;
+// 由 scripts/build-electron.js 通过 esbuild --define 在编译期注入
+declare const __UPSTREAM_VERSION__: string;
+declare const __UPSTREAM_COMMIT__: string;
+
+// 允许把用户数据目录指到别处：冒烟测试用它隔离测试配置，避免污染真实用户的
+// 画板数据与窗口状态。必须在任何 getPath 使用之前、app ready 之前调用。
+if (process.env.DRAWNIX_USER_DATA) {
+  app.setPath('userData', path.resolve(process.env.DRAWNIX_USER_DATA));
+}
+
+// 开发模式下的渲染层地址。默认指向上游 `npm start`（纯 Web 版）；
+// 想调桌面适配层时用 `npm run dev:renderer` 起 7201，并通过该环境变量切换。
+const DEV_SERVER_URL = process.env.DRAWNIX_DEV_URL || 'http://localhost:7200';
+// 未打包运行时默认走 dev server；测试/调试可以用这个开关强制加载内置渲染层，
+// 从而在不打安装包的情况下验证"安装版行为"（npm run smoke 就依赖它）。
+const FORCE_BUNDLE = process.env.DRAWNIX_USE_BUNDLE === '1';
+const isDev = !app.isPackaged && !FORCE_BUNDLE;
 const APP_ORIGIN = 'app://bundle';
 
 // 必须在 app ready 之前注册；secure: true 是 IndexedDB / Clipboard 正常工作的前提
@@ -148,12 +164,17 @@ async function loadWithRetry(win: BrowserWindow, url: string): Promise<boolean> 
 }
 
 async function createWindow() {
+  // 恢复上次退出时的窗口状态（全屏 / 最大化 / 尺寸与位置）
+  const windowState = loadWindowState();
   const win = new BrowserWindow({
-    width: 1440,
-    height: 900,
+    width: windowState.bounds.width,
+    height: windowState.bounds.height,
+    x: windowState.bounds.x,
+    y: windowState.bounds.y,
     minWidth: 1024,
     minHeight: 640,
     show: false,
+    fullscreen: windowState.isFullScreen,
     title: 'Drawnix',
     backgroundColor: '#ffffff',
     autoHideMenuBar: false,
@@ -166,6 +187,11 @@ async function createWindow() {
     },
   });
   mainWindow = win;
+
+  if (windowState.isMaximized && !windowState.isFullScreen) {
+    win.maximize();
+  }
+  trackWindowState(win, windowState);
 
   win.once('ready-to-show', () => {
     if (!win.isDestroyed()) win.show();
@@ -279,6 +305,16 @@ function registerIpc() {
 
   ipcMain.handle('app:version', () => app.getVersion());
 
+  // 导出图片（PNG/SVG）走的是渲染层的 <a download>，Chromium 会把它交给下载管理器。
+  // 这里统一接管为原生"另存为"对话框，避免文件静默落到系统的"下载"目录。
+  // 这条路径不需要改动上游的 download() 实现，属于桌面壳的职责。
+  session.defaultSession.on('will-download', (_event, item) => {
+    item.setSaveDialogOptions({
+      title: '保存',
+      defaultPath: item.getFilename(),
+    });
+  });
+
   // 剪贴板写图片需要该权限；其余权限一律拒绝
   session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => {
     callback(permission === 'clipboard-sanitized-write' || permission === 'clipboard-read');
@@ -326,7 +362,10 @@ function buildMenu() {
               type: 'info',
               title: '关于 Drawnix',
               message: `Drawnix ${app.getVersion()}`,
-              detail: '开源白板工具（MIT License）\nhttps://github.com/plait-board/drawnix',
+              detail:
+                `开源白板工具（MIT License）\n` +
+                `渲染层基于上游 ${__UPSTREAM_VERSION__}（${__UPSTREAM_COMMIT__}）\n` +
+                'https://github.com/plait-board/drawnix',
             });
           },
         },

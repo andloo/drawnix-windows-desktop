@@ -1,6 +1,6 @@
 {
   "name": "drawnix-desktop",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "private": true,
   "description": "Drawnix 开源白板桌面版（Windows 10 x64）",
   "author": "Drawnix Team",
@@ -11,11 +11,17 @@
   },
   "main": "electron/dist/main.js",
   "scripts": {
-    "sync:web": "node scripts/sync-web.js",
-    "verify:web": "node scripts/check-web-build.js",
-    "electron:build": "esbuild electron/main.ts electron/preload.ts --bundle --platform=node --target=node20 --format=cjs --external:electron --outdir=electron/dist --sourcemap",
+    "upstream:sync": "node scripts/upstream-sync.js",
+    "upstream:check": "node scripts/upstream-sync.js --check",
+    "build:renderer": "node scripts/build-renderer.js",
+    "verify:renderer": "node scripts/verify-renderer.js",
+    "electron:build": "node scripts/build-electron.js",
     "electron:dev": "npm run electron:build && electron .",
-    "dist:win": "npm run sync:web && npm run electron:build && electron-builder --win --x64 --publish never"
+    "smoke": "node scripts/smoke.js",
+    "dist:win": "npm run build:renderer && npm run electron:build && electron-builder --win --x64 --publish never",
+    "dist:win:reuse": "npm run verify:renderer && npm run electron:build && electron-builder --win --x64 --publish never",
+    "dev:renderer": "node scripts/dev-renderer.js",
+    "typecheck": "node scripts/typecheck.js"
   },
   "devDependencies": {
     "electron": "^41.7.1",
