@@ -1,5 +1,7 @@
 # Drawnix Windows 桌面版
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 把开源白板工具 [Drawnix](https://github.com/plait-board/drawnix) 封装成 Windows 10/11 x64 桌面客户端：双击安装、离线可用、`.drawnix` 文件双击即开，无需浏览器。
 
 > 渲染层直接复用 Drawnix 官方构建产物，本项目只提供 Electron 桌面壳与桌面能力适配（原生打开/保存对话框、导出落盘、外链交给系统浏览器）。
@@ -318,6 +320,8 @@ Drawnix.exe (NSIS 安装包)
 - 渲染层由上游源码构建，构建机需要能访问上游仓库并完成一次 `npm ci`（约 1~2 分钟）。`dist/apps/web` 不进版本库，首次构建前必须先执行 `npm run build:renderer`。
 
 ## 许可与致谢
+
+本项目采用 [MIT License](LICENSE) 开源。
 
 - 本项目基于 [Drawnix](https://github.com/plait-board/drawnix)（MIT License）构建，遵循 MIT License 分发。
 - 绘图框架：[Plait](https://github.com/worktile/plait)（MIT）；富文本：[Slate](https://github.com/ianstormtaylor/slate)（MIT）。
